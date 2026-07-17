@@ -28,8 +28,9 @@ spec:
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
             # to PUID:PGID, then drops to that user via gosu before running.
-            # Keep only the caps that chown + gosu's setuid/setgid need.
-            allowPrivilegeEscalation: false
+            # allowPrivilegeEscalation:false sets no_new_privs, which makes the
+            # kernel EPERM any exec of a setcap'd binary (this image setcaps
+            # its app binary for privileged-port binding) -- must stay true.
             capabilities:
               drop: ["ALL"]
               add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID"]
