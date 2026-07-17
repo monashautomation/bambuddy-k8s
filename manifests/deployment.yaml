@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bambuddy
+  namespace: bambuddy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: bambuddy
+  template:
+    metadata:
+      labels:
+        app: bambuddy
+    spec:
+      # SSDP printer discovery needs L2 multicast -> host networking,
+      # same trade-off as network_mode: host in the upstream compose file.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # host-networked pod binds directly to this node's ports, pin it.
+      nodeSelector:
+        kubernetes.io/hostname: pop-4
+      containers:
+        - name: bambuddy
+          image: ghcr.io/maziggy/bambuddy:latest
+          securityContext:
+            capabilities:
+              add: ["NET_BIND_SERVICE"]
+          env:
+            - name: TZ
+              value: "Australia/Melbourne"
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: PORT
+              value: "8000"
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: logs
+              mountPath: /app/logs
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: bambuddy-data
+        - name: logs
+          persistentVolumeClaim:
+            claimName: bambuddy-logs

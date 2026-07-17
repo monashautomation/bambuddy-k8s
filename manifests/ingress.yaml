@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bambuddy
+  namespace: bambuddy
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bambuddy.monashautomation.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bambuddy
+                port:
+                  number: 8000
+  tls:
+    - hosts:
+        - bambuddy.monashautomation.com
+      secretName: bambuddy-tls
