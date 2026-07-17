@@ -28,12 +28,15 @@ spec:
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
             # to PUID:PGID, then drops to that user via gosu before running.
-            # allowPrivilegeEscalation:false sets no_new_privs, which makes the
-            # kernel EPERM any exec of a setcap'd binary (this image setcaps
-            # its app binary for privileged-port binding) -- must stay true.
+            # App binary is setcap'd cap_net_bind_service unconditionally (for
+            # optional privileged VP ports), so exec fails with EPERM unless
+            # NET_BIND_SERVICE is in our bounding set -- even though this
+            # deployment only binds port 8000. allowPrivilegeEscalation must
+            # stay true (default) so the kernel honors that file capability;
+            # setting it false (no_new_privs) blocks setcap'd exec entirely.
             capabilities:
               drop: ["ALL"]
-              add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID"]
+              add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID", "NET_BIND_SERVICE"]
           env:
             - name: TZ
               value: "Australia/Melbourne"
