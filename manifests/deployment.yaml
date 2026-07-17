@@ -28,8 +28,11 @@ spec:
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
             # to PUID:PGID, then drops to that user via gosu before running.
-            # gosu needs CAP_SETUID/CAP_SETGID (default caps), so no drop: ALL.
+            # Keep only the caps that chown + gosu's setuid/setgid need.
             allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID"]
           env:
             - name: TZ
               value: "Australia/Melbourne"
