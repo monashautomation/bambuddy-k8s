@@ -28,9 +28,8 @@ spec:
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
             # to PUID:PGID, then drops to that user via gosu before running.
+            # gosu needs CAP_SETUID/CAP_SETGID (default caps), so no drop: ALL.
             allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
           env:
             - name: TZ
               value: "Australia/Melbourne"
