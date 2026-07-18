@@ -109,10 +109,13 @@ spec:
       app: bambuddy-postgres
   policyTypes:
     - Ingress
+    - Egress
   ingress:
     # bambuddy app pod runs with hostNetwork: true (needed for SSDP printer
     # discovery), so its traffic arrives from the node IP, not a pod-CIDR
-    # address -- podSelector alone won't match it, hence the ipBlock.
+    # address -- podSelector alone won't match it, hence the ipBlock. This
+    # ipBlock is only valid while the app stays pinned to pop-4
+    # (nodeSelector in deployment.yaml) -- update both together.
     - from:
         - podSelector:
             matchLabels:
@@ -122,3 +125,14 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+  egress:
+    # Postgres itself never needs to initiate outbound connections beyond
+    # DNS -- deny everything else to limit blast radius if the container
+    # is ever compromised.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
