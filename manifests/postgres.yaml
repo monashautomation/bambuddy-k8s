@@ -64,6 +64,17 @@ spec:
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+          # synchronous_commit=off: PGDATA lives on nfs-client (NFS-backed PVC),
+          # where every WAL fsync round-trips over the network (~100ms/write
+          # observed). With sync commit on, frequent small writes (e.g. AMS
+          # sensor history every 5s) each blocked on that fsync, causing the
+          # app-wide "slow API" symptom. This trades a few hundred ms of
+          # commit durability on hard crash/power loss for eliminating that
+          # stall; pod restarts are unaffected (WAL replay still happens).
+          # Already applied live via ALTER SYSTEM (persists in PGDATA); this
+          # flag just makes the setting reproducible if the volume is ever
+          # recreated fresh.
+          args: ["-c", "synchronous_commit=off"]
           ports:
             - containerPort: 5432
           volumeMounts:
