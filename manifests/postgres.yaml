@@ -4,11 +4,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: bambuddy-postgres-data-local
+  name: bambuddy-postgres-data
   namespace: bambuddy
 spec:
   accessModes: ["ReadWriteOnce"]
-  storageClassName: local-bambuddy-postgres
+  storageClassName: nfs-client
   resources:
     requests:
       storage: 5Gi
@@ -66,14 +66,23 @@ spec:
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
-          # synchronous_commit=off: originally added to work around NFS fsync
-          # round-trips (~100ms/write). PGDATA has since moved to local
-          # storage on pop-4 (bambuddy-postgres-data-local), but pop-4's disk
-          # is itself slow (~30-50ms/fsync measured), so frequent small
-          # writes (e.g. AMS sensor history every 5s) still benefit from this.
-          # Trades a fraction of a second of commit durability on hard
-          # crash/power loss for avoiding that stall; pod restarts are
-          # unaffected (WAL replay still happens).
+          # synchronous_commit=off: PGDATA lives on nfs-client (NFS-backed
+          # PVC), where every WAL fsync round-trips over the network
+          # (~100ms/write observed). With sync commit on, frequent small
+          # writes (e.g. AMS sensor history every 5s) each blocked on that
+          # fsync, causing app-wide "slow API" symptom. Trades a few hundred
+          # ms of commit durability on hard crash/power loss for eliminating
+          # that stall; pod restarts are unaffected (WAL replay still
+          # happens).
+          #
+          # NOTE: a local-storage migration was attempted (hostPath on pop-4)
+          # to avoid this tradeoff entirely, but pop-4 (Talos) does not
+          # persist arbitrary paths under /var across node maintenance --
+          # the data directory was wiped, causing a full outage + data loss
+          # back to the last pg_dump. Do not retry local hostPath storage on
+          # this node without a Talos-sanctioned persistent mount
+          # (e.g. /var/mnt) and real validation that it survives a reboot.
+          # nfs-client is the reliable choice here.
           args: ["-c", "synchronous_commit=off"]
           ports:
             - containerPort: 5432
@@ -94,7 +103,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: bambuddy-postgres-data-local
+            claimName: bambuddy-postgres-data
 ---
 apiVersion: v1
 kind: Service
