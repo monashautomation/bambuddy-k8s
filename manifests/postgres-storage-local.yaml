@@ -1,0 +1,32 @@
+# Local storage for Postgres, replacing nfs-client (see postgres.yaml comment
+# on synchronous_commit for why NFS was unsuitable). This PV is manually
+# provisioned hostPath on pop-4 -- kubernetes.io/no-provisioner means kustomize
+# only manages the StorageClass/PV objects; the actual directory
+# (/var/bambuddy-postgres, owned 999:999) must already exist on that node.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-bambuddy-postgres
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: bambuddy-postgres-local
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-bambuddy-postgres
+  local:
+    path: /var/bambuddy-postgres
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["pop-4"]

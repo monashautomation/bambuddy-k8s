@@ -4,11 +4,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: bambuddy-postgres-data
+  name: bambuddy-postgres-data-local
   namespace: bambuddy
 spec:
   accessModes: ["ReadWriteOnce"]
-  storageClassName: nfs-client
+  storageClassName: local-bambuddy-postgres
   resources:
     requests:
       storage: 5Gi
@@ -30,6 +30,8 @@ spec:
       labels:
         app: bambuddy-postgres
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: pop-4
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -64,16 +66,14 @@ spec:
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
-          # synchronous_commit=off: PGDATA lives on nfs-client (NFS-backed PVC),
-          # where every WAL fsync round-trips over the network (~100ms/write
-          # observed). With sync commit on, frequent small writes (e.g. AMS
-          # sensor history every 5s) each blocked on that fsync, causing the
-          # app-wide "slow API" symptom. This trades a few hundred ms of
-          # commit durability on hard crash/power loss for eliminating that
-          # stall; pod restarts are unaffected (WAL replay still happens).
-          # Already applied live via ALTER SYSTEM (persists in PGDATA); this
-          # flag just makes the setting reproducible if the volume is ever
-          # recreated fresh.
+          # synchronous_commit=off: originally added to work around NFS fsync
+          # round-trips (~100ms/write). PGDATA has since moved to local
+          # storage on pop-4 (bambuddy-postgres-data-local), but pop-4's disk
+          # is itself slow (~30-50ms/fsync measured), so frequent small
+          # writes (e.g. AMS sensor history every 5s) still benefit from this.
+          # Trades a fraction of a second of commit durability on hard
+          # crash/power loss for avoiding that stall; pod restarts are
+          # unaffected (WAL replay still happens).
           args: ["-c", "synchronous_commit=off"]
           ports:
             - containerPort: 5432
@@ -94,7 +94,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: bambuddy-postgres-data
+            claimName: bambuddy-postgres-data-local
 ---
 apiVersion: v1
 kind: Service
