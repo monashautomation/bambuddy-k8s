@@ -1,7 +1,6 @@
 # bambuddy-postgres Secret (POSTGRES_USER/PASSWORD/DB/DATABASE_URL) is
-# intentionally NOT defined here. It's applied out-of-band via kubectl and
-# excluded from git so the credential never lands in this public repo.
-# See postgres-secret.example.yaml for the expected shape.
+# synced from OpenBao via ExternalSecret (external-secrets.yaml), not defined
+# here. See postgres-secret.example.yaml for the expected shape.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
