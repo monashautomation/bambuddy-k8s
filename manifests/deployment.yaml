@@ -46,10 +46,11 @@ spec:
             # Image ships without git, but bambuddy's web UI self-updater shells
             # out to it ("Could not find git executable"). Installed here on
             # every start since it's not baked into the upstream image and pod
-            # restarts otherwise wipe it.
+            # restarts otherwise wipe it. Version pinned (Debian trixie) so a
+            # repo update can't silently change what gets installed.
             postStart:
               exec:
-                command: ["sh", "-c", "apt-get update -qq && apt-get install -y -qq git"]
+                command: ["sh", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends git=1:2.47.3-0+deb13u1"]
           env:
             - name: TZ
               value: "Australia/Melbourne"
