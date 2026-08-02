@@ -32,7 +32,7 @@ spec:
         app: bambuddy-postgres
     spec:
       nodeSelector:
-        kubernetes.io/hostname: pop-4
+        kubernetes.io/hostname: pop-5
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -134,14 +134,15 @@ spec:
     # bambuddy app pod runs with hostNetwork: true (needed for SSDP printer
     # discovery), so its traffic arrives from the node IP, not a pod-CIDR
     # address -- podSelector alone won't match it, hence the ipBlock. This
-    # ipBlock is only valid while the app stays pinned to pop-4
+    # ipBlock is only valid while the app stays pinned to pop-5
     # (nodeSelector in deployment.yaml) -- update both together.
+    # Moved from pop-4 (172.28.14.1) to pop-5 2026-08-02.
     - from:
         - podSelector:
             matchLabels:
               app: bambuddy
         - ipBlock:
-            cidr: 172.28.14.1/32
+            cidr: 172.28.15.1/32
       ports:
         - protocol: TCP
           port: 5432

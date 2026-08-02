@@ -21,11 +21,15 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       # host-networked pod binds directly to this node's ports, pin it.
+      # Moved from pop-4 (kubelet down, node cordoned) to pop-5 2026-08-02.
+      # Postgres NetworkPolicy ipBlock and postgres nodeSelector must move
+      # together -- see postgres.yaml.
       nodeSelector:
-        kubernetes.io/hostname: pop-4
+        kubernetes.io/hostname: pop-5
       containers:
         - name: bambuddy
           image: ghcr.io/maziggy/bambuddy:latest
+          imagePullPolicy: IfNotPresent
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
             # to PUID:PGID, then drops to that user via gosu before running.
@@ -38,6 +42,14 @@ spec:
             capabilities:
               drop: ["ALL"]
               add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID", "NET_BIND_SERVICE"]
+          lifecycle:
+            # Image ships without git, but bambuddy's web UI self-updater shells
+            # out to it ("Could not find git executable"). Installed here on
+            # every start since it's not baked into the upstream image and pod
+            # restarts otherwise wipe it.
+            postStart:
+              exec:
+                command: ["sh", "-c", "apt-get update -qq && apt-get install -y -qq git"]
           env:
             - name: TZ
               value: "Australia/Melbourne"
