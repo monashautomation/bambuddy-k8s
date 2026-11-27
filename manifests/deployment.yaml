@@ -28,7 +28,8 @@ spec:
         kubernetes.io/hostname: pop-5
       containers:
         - name: bambuddy
-          image: ghcr.io/maziggy/bambuddy:latest
+          # Version pinned in kustomization.yaml (images:), updated by Renovate PRs.
+          image: ghcr.io/maziggy/bambuddy
           imagePullPolicy: IfNotPresent
           securityContext:
             # image entrypoint starts as root to chown /app/data and /app/logs
@@ -42,15 +43,6 @@ spec:
             capabilities:
               drop: ["ALL"]
               add: ["CHOWN", "FOWNER", "DAC_OVERRIDE", "SETUID", "SETGID", "NET_BIND_SERVICE"]
-          lifecycle:
-            # Image ships without git, but bambuddy's web UI self-updater shells
-            # out to it ("Could not find git executable"). Installed here on
-            # every start since it's not baked into the upstream image and pod
-            # restarts otherwise wipe it. Version pinned (Debian trixie) so a
-            # repo update can't silently change what gets installed.
-            postStart:
-              exec:
-                command: ["sh", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends git=1:2.47.3-0+deb13u1"]
           env:
             - name: TZ
               value: "Australia/Melbourne"

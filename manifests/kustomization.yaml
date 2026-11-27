@@ -8,3 +8,10 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+# Exact Bambuddy version. Renovate (renovate.json) opens a PR for each new upstream release;
+# merging it deploys through Argo. Don't use Bambuddy's in-app updater: it changes code inside
+# the running container, which is lost on restart and isn't recorded anywhere.
+images:
+  - name: ghcr.io/maziggy/bambuddy
+    newTag: "1.3.2"
+    digest: sha256:16be075c5517b5ceab201d0105938c1a890f5b315bf185fdfa98d47f12f6bd03

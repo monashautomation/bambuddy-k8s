@@ -17,3 +17,10 @@ GitHub-backup restore feature in-app, not tracked in this repo.
 ```bash
 kubectl apply -k manifests/
 ```
+
+## Updates
+
+The Bambuddy version is pinned (tag + digest) in `manifests/kustomization.yaml`. Renovate
+(`renovate.json`) opens a PR for each new upstream release once it's 3 days old; patch and minor
+releases merge automatically, majors wait for a review. Argo deploys whatever is merged. Don't use
+Bambuddy's in-app updater: it changes code inside the running container, which is lost on restart.
